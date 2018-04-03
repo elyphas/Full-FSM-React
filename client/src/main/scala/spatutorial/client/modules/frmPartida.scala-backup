@@ -1,0 +1,197 @@
+package spatutorial.client.modules
+
+import diode.data.Pot
+import diode.react.ModelProxy
+import scalacss.internal.Pseudo.Active
+//import diode._
+import japgolly.scalajs.react.vdom.{VdomArray /*, VdomElement*/  }
+
+import spatutorial.client.services.SPACircuit
+import spatutorial.client.components.Bootstrap.{Button, Text, TextArea /*CheckBox, CommonStyle,*/ }
+import spatutorial.client.components._
+
+//import spatutorial.client.logger._
+import spatutorial.client.services._
+import spatutorial.shared._
+//import scala.concurrent.Future
+//import scala.util.{Success, Failure, Try}
+
+//import scala.concurrent.duration._
+
+//import scala.concurrent.Await
+//import scalacss.ScalaCssReact._
+
+//import autowire._
+//import boopickle.Default._
+//import spatutorial.client.services.AjaxClient
+//import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+
+import japgolly.scalajs.react._
+import japgolly.scalajs.react.vdom.html_<^._
+
+import spatutorial.client.actionhandlers.{GetPartida, CleanPartida, InsertPartida, SavePartida}
+
+import akka.actor._
+import akka.actor.{Props => ActorsProps}
+
+//import org.scalajs.dom.window
+
+object frmPartida {
+  @inline private def bss = GlobalStyles.bootstrapStyles
+
+  case class Props(proxy: ModelProxy[Pot[(Partida, String)]])
+
+  //case class State(	item: Partida = Partida(),
+                    //showSearchCatalogo: Boolean = false,
+                    //This variables are for the states of the UI
+                    //editar: Boolean = false,
+                    //saved: Boolean = false,
+                    //msg: String = "")
+
+  sealed trait ReactState{}
+  case class StateNew(item: Partida = Partida()) extends ReactState
+  case class StateFound(item: Partida) extends ReactState
+
+  sealed trait InternalState
+  case object FSMNew extends InternalState
+  case object FSMFound extends InternalState
+
+  final case object Start
+  final case class Search(t: Int)
+
+  val system = ActorSystem()
+
+  class Backend($: BackendScope[Props, ReactState]) {
+
+    class FSMBackend() extends FSM[InternalState, ReactState] {
+
+      startWith(FSMNew, StateNew())
+
+      when(FSMNew) {
+        case Event(Search(t), StateFound(item) ) =>
+          println("no mamess")
+          println(t)
+          //$.setState(item).runNow()
+          //goto(FSMFound) using nextTime
+          stay
+      }
+
+      when(FSMFound) {
+        case Event(Search, StateFound(item)) =>
+          println("no mames")
+          //$.setState(item).runNow()
+          stay //using nextTime
+      }
+    }
+
+    val state = system.actorOf(ActorsProps(new FSMBackend))
+
+    def start =  Callback { state ! Start }
+    def stop =  Callback { state ! PoisonPill }
+
+    /*def onChangeID(e: ReactEventFromInput) = {
+      val text = e.target.value.toUpperCase
+      if (text.length >= 5)
+        $.modState(s=>s.copy(item = s.item.copy(cve_partida = text)), getPartida(text))
+      else
+        $.modState(s=>s.copy(item = s.item.copy(cve_partida = text)))
+    }
+
+    def getPartida(id: String) = $.props >>= (_.proxy.dispatchCB(GetPartida(id)))
+
+    def onChangeDescripcion(e: ReactEventFromInput) =  {
+      val text = e.target.value.toUpperCase
+
+      $.modState( s => s.copy(item = s.item.copy(descripcion = Some(text))) )
+    }
+
+    def onSave: Callback = $.state.zip($.props) >>= { case (s, p) =>
+      p.proxy.dispatchCB(SavePartida(s.item))
+    }*/
+
+    def onNew = $.props >>= ( _.proxy.dispatchCB(CleanPartida) )
+
+    def onAdd = $.state.zip($.props) >>= { case (reactState, p) =>
+
+      val s = reactState match {
+        case StateNew(i) => i
+        case StateFound(i) => i
+      }
+
+      p.proxy.dispatchCB(InsertPartida(s))
+    }
+
+    def onSearch = Callback {
+      println("Deberia mandar el Search(1)")
+      state ! Search(1)
+    }
+
+    def onDelete = Callback.alert("Borrar")
+
+    def	render(p: Props, reactState: ReactState) = {
+
+      val s = reactState match {
+        case StateNew(i) => i
+        case StateFound(i) => i
+      }
+
+      <.div( ^.padding := "30",  ^.marginLeft:="100",  ^.border := "1px solid", ^.marginTop := "3", ^.borderColor:="#20B2AA",
+        ^.height := "auto", ^.overflow := "hidden",
+      <.header( <.h1( "Partida presupuestal") ),
+
+          //if(s.msg == "") VdomArray.empty() else <.span(s.msg),
+
+          <.div( ^.padding := "5", ^.border := "1px solid", ^.marginTop := "5", ^.borderColor:="#20B2AA", ^.height := "auto", ^.overflow := "hidden",
+            ^.display:= "inline-block",
+            <.section(^.width := "800", ^.padding := "5"/*,
+
+              <.div(^.height := "auto", ^.overflow := "hidden",
+                Text(Text.Props(idx = "txtID", label="ID",  onChange = onChangeID, value = s.cve_partida,
+                  otrosStyles = Seq(^.width := "120", ^.marginRight := "5"))),
+
+                TextArea(TextArea.Props(idx = "txtDescripcion", label="Descripción", onChange = onChangeDescripcion,
+                  value = s.descripcion.getOrElse(""), otrosStyles = Seq(^.width := "260", ^.marginRight := "5")))
+              )*/
+            )
+          ),
+          <.div(^.padding := "10", ^.border:="solid", /*^.marginTop:=50,*/ ^.borderColor:="#20B2AA",
+           // Button(Button.Props( onSave, addStyles = Seq( bss.buttonXS)), "Guardar" ),
+            //Button(Button.Props( onAdd, addStyles = Seq( bss.buttonXS)), "Agregar" ),
+            //Button(Button.Props(onNew, addStyles = Seq( bss.buttonXS)), "Nuevo" ),
+            Button(Button.Props(onSearch, addStyles = Seq( bss.buttonXS)), "Buscar" )
+            //Button(Button.Props( onDelete, addStyles = Seq( bss.buttonXS)), "Borrar" )
+          )
+        )
+    }
+  }
+
+  val component = ScalaComponent.builder[Props]("frmPartida")
+    //.initialState(StateNew(): ReactState)
+    .initialState[ReactState](StateNew())
+    .renderBackend[Backend]
+    .componentWillReceiveProps{ rp =>
+
+      val (partida: Partida, editar: Boolean, msg: String) = rp.nextProps.proxy() match {
+        case x if x.isUnavailable =>
+          (Partida(), false, "No se encontro")
+          //(Partida(cve_partida = rp.state.item.cve_partida), false, "No se encontro")
+        case x if x.isEmpty => (Partida(), false, "Nuevo")
+        case x if x.isFailed => (Partida(), false, "Error")
+        case _ => {
+          val (partida: Partida, _ /*event: String*/) = rp.nextProps.proxy().get
+          (partida, true, "Guardado")
+        }
+      }
+
+      rp.setState(StateNew(item = partida/*, editar = editar, msg = msg*/))
+    }
+    .componentDidMount(_.backend.start)
+    .componentWillUnmount(_.backend.stop)
+    .build
+
+  def apply() = {
+      val PartidaWraper = SPACircuit.connect(_.partida)
+      PartidaWraper(prox => component(Props(proxy = prox)))
+  }
+
+}

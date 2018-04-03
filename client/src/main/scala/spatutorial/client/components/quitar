@@ -1,0 +1,28 @@
+This wy it works:
+
+```scala
+val fmtRenglones = dictamen.groupBy(_.renglon).flatMap{ r =>
+  r._2.map { d =>
+    /*val prov = d.razon_social
+    paragraph(text = Seq(texto(text = /*reng.toString + ".-" + */prov, bold = true)))*/
+    (d.renglon.toString + "****" + d.razon_social)
+  }
+}.toList.sorted
+```
+
+This doesn't:
+```scala
+val fmtRenglones = dictamen.groupBy(_.renglon).flatMap{ r =>
+  r._2.map { d =>
+    val prov = d.razon_social
+    paragraph(text = Seq(texto(text = /*reng.toString + ".-" + */prov, bold = true)))
+    //(d.renglon.toString + "****" + d.razon_social)
+  }
+}.toList.sorted
+```
+The error is thiss:
+
+rptDictamen.scala:182: No implicit Ordering defined for spatutorial.client.pdfMake.paragraph.
+[error]     }.toList.sorted
+
+the paragraph object is from scalajs facade

@@ -1,0 +1,124 @@
+package spatutorial.client.modules
+import diode.data.Pot
+import diode.react.ModelProxy
+import japgolly.scalajs.react.vdom.{VdomArray }
+import spatutorial.client.services.SPACircuit
+import spatutorial.client.components.Bootstrap.{Button, Text, TextArea }
+import spatutorial.client.components._
+import spatutorial.client.services._
+import spatutorial.shared._
+import japgolly.scalajs.react._
+import japgolly.scalajs.react.vdom.html_<^._
+import spatutorial.client.actionhandlers.{GetPartida, CleanPartida, InsertPartida, SavePartida}
+import akka.actor._
+//import akka.actor.{Props => ActorsProps}
+import scala.concurrent.duration._
+
+
+object frmPartida {
+  @inline private def bss = GlobalStyles.bootstrapStyles
+
+  case class Props2(proxy: ModelProxy[Pot[(Partida, String)]])
+
+  sealed trait FSMState
+  case object FSMNew extends FSMState
+  case object FSMFound extends FSMState
+  case object FSMInit extends FSMState
+
+  sealed trait ReactState
+  case class StateNew(item: Partida = Partida()) extends ReactState
+  case class StateFound(item: Partida) extends ReactState
+
+  final case object Start
+  final case class Search(t: Int)
+
+  val system = ActorSystem()
+
+  class Backend($: BackendScope[Props2, ReactState]) {
+
+    class FSMBackend() extends FSM[FSMState, ReactState] {
+
+      startWith( FSMInit, StateNew() )
+
+      when(FSMInit) {
+        case Event(Start, _) => {
+          println("mensage Start!!!!!!!!!!!!!")
+          $.setState(StateFound(Partida(cve_partida = "no mamess!!!!!!!!!!")))//.runNow()
+          stay
+        }
+      }
+
+      whenUnhandled {
+        case Event(_, _) => {
+          log.warning("Received unhandled request")
+          println("Start")
+          $.setState( StateFound(Partida())).runNow()
+          //$.setState( StateFound(Partida( cve_partida = "no mamess" ))).runNow()
+          stay
+        }
+
+        case Event(e, s) => {
+          log.warning("Received unhandled request {} in state {}/{}", e, stateName, s )
+          println("Start")
+          $.setState( StateFound(Partida( cve_partida = "no mamess" ))).runNow()
+          stay
+        }
+      }
+     initialize()
+    }
+
+    val state = system.actorOf( Props(new FSMBackend) )
+
+    def onSearch = Callback {
+
+      println("mando el mensage el Search(1)")
+
+      val ver = "Unhandled"
+
+      state ! Start
+      state ! Search(1)
+      state ! ver
+    }
+
+    def start =  Callback {
+      println("Mandando el msg Start")
+      state ! Start
+    }
+    def stop =  Callback { state ! PoisonPill }
+
+    def	render(p: Props2, reactState: ReactState) = {
+
+      println("Renderizando!!!!!!!!!!!!!!!!")
+
+      val s = reactState match {
+        case StateNew(i) => i
+        case StateFound(i) => i
+      }
+      println("Imprimiendo  el estado!!!!!")
+      println(s)
+
+      <.div( ^.padding := "30",  ^.marginLeft:="100",  ^.border := "1px solid", ^.marginTop := "3", ^.borderColor:="#20B2AA",
+        ^.height := "auto", ^.overflow := "hidden",
+      <.header( <.h1( "Partida presupuestal") ),
+        <.div(^.padding := "10", ^.border:="solid", ^.borderColor:="#20B2AA",
+          Button(Button.Props(onSearch, addStyles = Seq( bss.buttonXS)), "Buscar" )
+        )
+      )
+    }
+  }
+
+  val component = ScalaComponent.builder[Props2]("frmPartida")
+    .initialState[ReactState](StateNew())
+    .backend(new Backend(_))
+    .renderBackend
+    //.renderBackend[Backend]
+    .componentDidMount(_.backend.start)
+    .componentWillUnmount(_.backend.stop)
+    .build
+
+  def apply() = {
+      val PartidaWraper = SPACircuit.connect(_.partida)
+      PartidaWraper(prox => component(Props2(proxy = prox)))
+  }
+
+}

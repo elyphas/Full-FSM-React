@@ -1,0 +1,184 @@
+package spatutorial.client.components
+
+import javax.swing.GroupLayout.Alignment
+
+import com.sun.tracing.Probe
+import diode.data.Pot
+import diode.react.ModelProxy
+import diode._
+import spatutorial.client.pdfMake._
+import japgolly.scalajs.react._
+import japgolly.scalajs.react.vdom.html_<^._
+import spatutorial.client.components.Bootstrap.{Button, Combo, CommonStyle, Text}
+import spatutorial.client.components._
+import spatutorial.client.logger._
+import spatutorial.client.services._
+import spatutorial.shared._
+
+import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
+import scala.concurrent.Await
+import scalacss.ScalaCssReact._
+//import chandu0101.scalajs.react.components.Implicits._
+
+import autowire._
+import boopickle.Default._
+import spatutorial.client.services.AjaxClient
+import scala.scalajs.concurrent.JSExecutionContext.Implicits.queue
+
+import scalajs.js
+import js.Dynamic.{ global => g }
+import scala.scalajs.js.{|, Date => jsDate}
+
+import java.time._
+import java.util._
+import java.text.SimpleDateFormat
+
+import spatutorial.client.actionhandlers.{GetQryPedidoDatGrales, GetPartidaAnexo}
+
+import scala.scalajs.js.JSConverters._
+import scala.scalajs.js.annotation.JSName
+import scala.scalajs.js
+
+//https://github.com/jducoeur/bootstrap-datepicker-scalajs
+//import org.querki.facades.bootstrap.datepicker._ // this adds '.datepicker' implicit
+
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+class numbertoletter {
+
+  def addComa(str: String): String = {
+    val partEntera = str.substring(0, str.length - 3)
+    val partDecimal = str.substring(str.length - 3, str.length)
+
+    val miles: String = if (partEntera.length > 6) {
+      val len = partEntera.length
+      partEntera.substring(0, len - 6) + "," + partEntera.substring(len - 6, (len - 3)) + "," + partEntera.substring(len - 3, len)
+    } else if (partEntera.length > 3) {
+      partEntera.substring(0, partEntera.length - 3) + "," + partEntera.substring(partEntera.length - 3, partEntera.length)
+    } else partEntera
+    miles + partDecimal
+  }
+
+  def fmtMiles(valor: BigDecimal, dec: Int = 2): String = {
+    import scala.scalajs.js.JSNumberOps._
+    val newValor = if (dec > 0) valor.toDouble.toFixed(dec) else valor.toDouble.toFixed(0)
+    addComa(newValor)
+  }
+
+
+  def NumeroaLetras(Numero: Double): String = {
+
+    val _fraccion: Double = Numero % 1
+
+    //if (_fraccion == 0) Numero = Numero
+
+    val _convertir: String = Numero.toString
+    val _enLetras: String = ""
+    var _decimal: String = ""
+    //val delimitar: Seq[String] = Seq('.', ',')
+
+    if (_convertir == "0.00" || _convertir == "0") {
+      "CERO PESOS 00/100 M. N."
+    } else {
+      var _componentes: Seq[String] = _convertir.split(".")
+
+      if (_componentes.length == 1) {
+        _decimal = " PESOS 00/100 M. N."
+      } else {
+        /*if (_componentes(1).length == 1) {
+          _componentes(1) = _componentes(1) + "0"
+        }*/
+        _decimal = " PESOS " + _componentes(1) + "/100 M. N."
+      }
+
+      var _numeros: Seq[Char] =_componentes(0)
+
+      val _enLetras: String = _numeros.length match {
+        case 1 =>
+            "Unidades(_numeros(0).toString)"
+        case 2 =>
+            Decenas(_numeros(0).toString, _numeros(1).toString)
+        case 3 =>
+            Centenas(_numeros(0).toString, _numeros(1).toString, _numeros(2).toString)
+        case 4 =>
+            UnidadesDeMillar( _numeros(0).toString, _numeros(1).toString, _numeros(2).toString, _numeros(3).toString)
+        case 5 =>
+            DecenasDeMillar( _numeros(0).toString, _numeros(1).toString, _numeros(2).toString, _numeros(3).toString, _numeros(4).toString)*/
+      }
+
+    }
+    _enLetras+_decimal
+  }
+
+  def Unidades(_unidad: String): String = {
+    val _elemento: Int = _unidad.toInt
+
+    val unidades: Seq[String] = Seq("", "UN", "DOS", "TRES", "CUATRO", "CINCO", "SEIS", "SIETE", "OCHO", "NUEVE")
+
+    unidades(_elemento).trim()
+  }
+
+  def Decenas(_decena: String, _unidad: String): String = {
+    val decena: Int = _decena.toInt
+    val unidad: Int = _unidad.toInt
+    val diez: Seq[String] = Seq("","ONCE","DOCE","TRECE","CATORCE","QUINCE","DECISEIS","DIECISIETE","DIECIOCHO","DIECINUEVE")
+    val decenas: Seq[String] = Seq("","DIEZ","VEINTE","TREINTA","CUARENTA","CINCUENTA","SESENTA","SETENTA","OCHENTA","NOVENTA")
+    if (decena == 1)  {
+      if (unidad == 0)  {
+        return decenas(decena)
+      } else {
+        diez(unidad)
+      }
+    } else if(decena == 2) {
+      if (unidad == 0) {
+        decenas(decena)
+      } else {
+        "VEINTI" + Unidades(_unidad).trim
+      }
+    } else {
+      if (unidad == 0) {
+        decenas(decena)
+      } else {
+        decenas(decena) + " Y " + Unidades(_unidad).trim
+      }
+    }
+  }
+
+  def Centenas(_centena: String, _decena: String, _unidad: String): String = {
+    val centena = _centena.toInt
+    val decena = _decena.toInt
+    val unidad = _unidad.toInt
+    var numero = ""
+
+    val centenas: Seq[String] = Seq("","CIENTO","DOSCIENTOS","TRESCIENTOS","CUATROCIENTOS","QUINIENTOS","SEISCIENTOS","SETECIENTOS","OCHOCIENTOS","NOVECIENTOS")
+
+    if (centena == 1 && decena == 0 && unidad == 0) {
+      "CIEN"
+    } else {
+      numero = centenas(centena) + " " + Decenas(_decena,_unidad).trim
+      if (decena == 0) {
+        numero.replace("Y","").trim
+      }
+      numero
+    }
+  }
+
+  def UnidadesDeMillar(_millar: String, _centena: String, _decena: String, _unidad: String): String = {
+    var numero = Unidades(_millar) + " MIL " + Centenas(_centena, _decena, _unidad).trim
+    numero = numero.replace("UN MIL", "MIL").trim
+
+    if (_centena.toInt == 0 && _decena.toInt == 0) {
+      numero = numero.replace(" Y "," ").trim
+    }
+    numero
+  }
+
+  def DecenasDeMillar(_decenasDeMillas: String, _millar: String, _centena: String, _decena: String, _unidad: String): String = {
+    Decenas(_decenasDeMillas, _millar) + " MIL " + Centenas(_centena, _decena, _unidad)
+  }
+
+
+}

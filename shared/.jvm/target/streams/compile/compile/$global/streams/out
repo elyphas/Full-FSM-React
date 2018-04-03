@@ -1,0 +1,7 @@
+[0m[[0m[33mwarn[0m] [0m[0m/home/elyphas/Projs/sicap/shared/src/main/scala/spatutorial/shared/PedidoType.scala:9:27: imported `DetallePedido' is permanently hidden by definition of object DetallePedido in package shared[0m
+[0m[[0m[33mwarn[0m] [0m[0mimport spatutorial.shared.DetallePedido[0m
+[0m[[0m[33mwarn[0m] [0m[0m                          ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/home/elyphas/Projs/sicap/shared/src/main/scala/spatutorial/shared/TodoItem.scala:7:27: imported `Hora' is permanently hidden by definition of object Hora in package shared[0m
+[0m[[0m[33mwarn[0m] [0m[0mimport spatutorial.shared.Hora[0m
+[0m[[0m[33mwarn[0m] [0m[0m                          ^[0m
+[0m[[0m[33mwarn[0m] [0m[0mtwo warnings found[0m
